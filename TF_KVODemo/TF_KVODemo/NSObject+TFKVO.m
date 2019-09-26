@@ -11,13 +11,31 @@
 #import <objc/runtime.h>
 #import <objc/message.h>
 
-@interface TF_ObserverInfo : NSObject
+static char TFKVOObserverObjectsKey;
+
+// TFKVOObeserver
+@interface TF_ObserverObject : NSObject
 
 @property (nonatomic, weak) NSObject *observer;
-@property (nonatomic, copy) NSObject *keyPath;
+@property (nonatomic, copy) NSString *keyPath;
 @property (nonatomic, copy) TF_ObserverBlock observerBlock;
 
 @end
+
+@implementation TF_ObserverObject
+
+- (instancetype)initWitObserver:(id)observer keyPath:(NSString *)keyPath observerBlock:(TF_ObserverBlock)block {
+    
+    if (self = [super init]) {
+        _observer = observer;
+        _keyPath = keyPath;
+        _observerBlock = block;
+    }
+    return self;
+}
+
+@end
+
 
 static NSString *const TFKVOClassPrefix = @"TF_KVOClassPrefix"; // 派生类的自定义前缀
 
@@ -28,8 +46,8 @@ static NSString *const TFKVOClassPrefix = @"TF_KVOClassPrefix"; // 派生类的�
          observerBlock:(TF_ObserverBlock)observerBlock {
     
     // 取出对应的set方法
-    SEL setterSelector = NSSelectorFromString([self setMethodForKeyPath:keyPath]);
-    Method setterMethod = class_getInstanceMethod([self class], setterSelector);
+    SEL setter = NSSelectorFromString([self setMethodForKeyPath:keyPath]);
+    Method setterMethod = class_getInstanceMethod([self class], setter);
 
     NSString *errMsg = [NSString stringWithFormat:@"监听对象没有实现属性%@的set方法", keyPath];
     NSAssert(setterMethod, errMsg);
@@ -41,18 +59,41 @@ static NSString *const TFKVOClassPrefix = @"TF_KVOClassPrefix"; // 派生类的�
     if (![clsName hasPrefix:TFKVOClassPrefix]) {
         
         // 生成派生类
-        cls = [self createKvoClassWithClsName:clsName];
+        cls = [self createKVOClassWithClsName:clsName];
         // 将self的isa指针指向cls
         object_setClass(self, cls);
     }
     
-    if (![self containsSelector:setterSelector]) {
+    // 给派生类添加set方法
+    if (![self containsSelector:setter]) {
         const char *types = method_getTypeEncoding(setterMethod);
-        class_addMethod(cls, setterSelector, (IMP)kvo_setter, types);
+        class_addMethod(cls, setter, (IMP)kvo_setter, types);
+    }
+    
+    TF_ObserverObject *object = [[TF_ObserverObject alloc] initWitObserver:observer keyPath:keyPath observerBlock:observerBlock];
+    
+    NSMutableArray *objects = objc_getAssociatedObject(self, &TFKVOObserverObjectsKey);
+    if (!objects) {
+        objects = [NSMutableArray array];
+        objc_setAssociatedObject(self, &TFKVOObserverObjectsKey, objects, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
+    [objects addObject:object];
+}
+
+
+- (void)tf_removeObserver:(NSObject *)observer keyPath:(NSString *)keyPath {
+    
+    NSMutableArray *objects = objc_getAssociatedObject(self, &TFKVOObserverObjectsKey);
+    for (TF_ObserverObject *object in objects) {
+        if (object.observer == object && [object.keyPath isEqualToString:keyPath]) {
+            [objects removeObject:object];
+            return;
+        }
     }
 }
 
-- (Class)createKvoClassWithClsName:(NSString *)clsName {
+// 根据类名创建类
+- (Class)createKVOClassWithClsName:(NSString *)clsName {
     
     NSString *kvoClsName = [TFKVOClassPrefix stringByAppendingString:clsName];
     Class cls = NSClassFromString(kvoClsName);
@@ -61,13 +102,13 @@ static NSString *const TFKVOClassPrefix = @"TF_KVOClassPrefix"; // 派生类的�
         return cls;
     }
     
-    // 不存在的话新建派生类
+    // 不存在, 新建派生类
     Class selfClass = object_getClass(self);
     
     // 动态创建类   selfClass的子类 传nil创建一个基类
     Class kvoCls = objc_allocateClassPair(selfClass, kvoClsName.UTF8String, 0);
     
-    // 获取类的class实例方法 并重写 讲isa指针指向真正的父类
+    // 获取类的class实例方法 并重写
     Method instanceMethod = class_getInstanceMethod(kvoCls, @selector(class));
     const char *types = method_getTypeEncoding(instanceMethod);
     class_addMethod(kvoCls, @selector(class), (IMP)kvo_class, types);
@@ -77,11 +118,13 @@ static NSString *const TFKVOClassPrefix = @"TF_KVOClassPrefix"; // 派生类的�
     return kvoCls;
 }
 
+// 生成set方法字符串
 - (NSString *)setMethodForKeyPath:(NSString *)keyPath {
     
     if (keyPath.length <= 0) {
         return nil;
     }
+    // setXxxx
     NSString *firstLetter = [[keyPath substringToIndex:1] uppercaseString];;
     NSString *leftLetters = [keyPath substringFromIndex:1];
     return [NSString stringWithFormat:@"set%@%@:", firstLetter, leftLetters];
@@ -116,13 +159,15 @@ static void kvo_setter(id self, SEL _cmd, id newValue) {
     NSString *getterName = [self getterNameWithSetterName:setterName];
     
     // 获取get实例方法
-    SEL getterSelector = NSSelectorFromString(getterName);
-    Method getterMethod = class_getInstanceMethod([self class], getterSelector);
+    SEL getter = NSSelectorFromString(getterName);
+    Method getterMethod = class_getInstanceMethod([self class], getter);
     NSString *noGetterErrorMsg = [NSString stringWithFormat:@"需要监听的对象没有实现getter方法"];
     NSAssert(getterMethod, noGetterErrorMsg);
     
     // 获取旧值
     id oldValue = [self valueForKey:getterName];
+    
+    // 赋值新值
     
     // 构建objc_super的结构体
     struct objc_super superClass = {
@@ -131,11 +176,22 @@ static void kvo_setter(id self, SEL _cmd, id newValue) {
     };
     
     // 编译器报错
+    // Build Setting Enable Strict Checking of objc_msgSend Calls改为NO
 //    objc_msgSendSuper(&superClass, _cmd, newValue);
-    void (*objc_msgSendSuperCasted)(void *, SEL, id) = (void *)objc_msgSend;
+    
+    // 发送消息set方法赋值
+    void (*objc_msgSendSuperCasted)(void *, SEL, id) = (void *)objc_msgSendSuper;
     objc_msgSendSuperCasted(&superClass, _cmd, newValue);
     
     // 应该block回去
+    NSMutableArray *objects = objc_getAssociatedObject(self, &TFKVOObserverObjectsKey);
+    for (TF_ObserverObject *object in objects) {
+        
+        if ([object.keyPath isEqualToString:getterName]) {
+            object.observerBlock(oldValue, newValue);
+            break;
+        }
+    }
 }
 
 - (NSString *)getterNameWithSetterName:(NSString *)setterName {

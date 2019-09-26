@@ -18,6 +18,7 @@ typedef void(^TF_ObserverBlock)(NSString *oldValue, NSString *newValue);
             forKeyPath:(NSString *)keyPath
          observerBlock:(TF_ObserverBlock)observerBlock;
 
+- (void)tf_removeObserver:(NSObject *)observer keyPath:(NSString *)keyPath;
 @end
 
 NS_ASSUME_NONNULL_END

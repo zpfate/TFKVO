@@ -14,6 +14,7 @@
 		5B51937721AFBF8F00566107 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 5B51937521AFBF8F00566107 /* LaunchScreen.storyboard */; };
 		5B51937A21AFBF8F00566107 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B51937921AFBF8F00566107 /* main.m */; };
 		5B51938221AFC51B00566107 /* NSObject+TFKVO.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B51938121AFC51B00566107 /* NSObject+TFKVO.m */; };
+		5BDF0123233CA476003BA582 /* Student.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BDF0122233CA476003BA582 /* Student.m */; };
 		5BE9BF8921B8BD3A00BB9A8A /* Person.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BE9BF8821B8BD3A00BB9A8A /* Person.m */; };
 /* End PBXBuildFile section */
 
@@ -30,6 +31,8 @@
 		5B51937921AFBF8F00566107 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		5B51938021AFC51B00566107 /* NSObject+TFKVO.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "NSObject+TFKVO.h"; sourceTree = "<group>"; };
 		5B51938121AFC51B00566107 /* NSObject+TFKVO.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "NSObject+TFKVO.m"; sourceTree = "<group>"; };
+		5BDF0121233CA476003BA582 /* Student.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Student.h; sourceTree = "<group>"; };
+		5BDF0122233CA476003BA582 /* Student.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Student.m; sourceTree = "<group>"; };
 		5BE9BF8721B8BD3A00BB9A8A /* Person.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Person.h; sourceTree = "<group>"; };
 		5BE9BF8821B8BD3A00BB9A8A /* Person.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Person.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -70,6 +73,8 @@
 				5B51936E21AFBF8E00566107 /* ViewController.m */,
 				5BE9BF8721B8BD3A00BB9A8A /* Person.h */,
 				5BE9BF8821B8BD3A00BB9A8A /* Person.m */,
+				5BDF0121233CA476003BA582 /* Student.h */,
+				5BDF0122233CA476003BA582 /* Student.m */,
 				5B51938021AFC51B00566107 /* NSObject+TFKVO.h */,
 				5B51938121AFC51B00566107 /* NSObject+TFKVO.m */,
 				5B51937021AFBF8E00566107 /* Main.storyboard */,
@@ -156,6 +161,7 @@
 				5BE9BF8921B8BD3A00BB9A8A /* Person.m in Sources */,
 				5B51937A21AFBF8F00566107 /* main.m in Sources */,
 				5B51936C21AFBF8E00566107 /* AppDelegate.m in Sources */,
+				5BDF0123233CA476003BA582 /* Student.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
